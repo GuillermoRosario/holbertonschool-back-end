@@ -1,30 +1,36 @@
 #!/usr/bin/python3
-"""
-RESTFul API for employee
-"""
-import requests
-import sys
-import json
+""" Script to export data in the JSON format"""
+
 
 if __name__ == "__main__":
-    """ Gets employee todo information """
-    user_url = requests.get(
-        'https://jsonplaceholder.typicode.com/users').json()
+    import json
+    import requests
 
-    users_tasks = {}
+    # Endpoint URL
+    users_response = requests.get("https://jsonplaceholder.typicode.com/users")
+    users = users_response.json()
 
-    for user in user_url:
-        tasks = requests.get(
-            f"{user_url}/{user['id']}/todos").json()
+    users_todo_dict = {}
 
-    users_tasks[user['id']] = []
-    for task in tasks:
-        tasks_dict = {
-            'username': user['username'],
-            'task': task['title'],
-            'completed': task['completed']
-        }
-        users_tasks[user['id']].append(tasks_dict)
+    for user in users:
+        # Extracting actual user id for extracts its TODO tasks
+        user_id = user.get('id')
+        user_todo_query = {'userId': user_id}
+        response_2 = requests.get("https://jsonplaceholder.typicode.com/todos",
+                                  params=user_todo_query)
+        todo_list = response_2.json()
 
-    with open('todo_all_employees.json', 'w') as f:
-        json.dump(users_tasks, f)
+        # Creating a list of user's tasks (each contained in dictionary form)
+        username = user.get('username')
+        tasks = [{"task": task.get('title'), "username": username,
+                  "completed": task.get('completed')} for task in todo_list]
+
+        # Updating users task's dictionary with actual user and its tasks
+        users_todo_dict[user_id] = tasks
+
+    # Serializing to json
+    json_object = json.dumps(users_todo_dict)
+
+    # Writing to json file
+    with open('todo_all_employees.json', "w") as jsonfile:
+        jsonfile.write(json_object)
